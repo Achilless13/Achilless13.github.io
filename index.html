@@ -1,0 +1,1159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lift • Run • Calories — Tracker v3.1 (Firebase v12, robust)</title>
+  <style>
+    :root{
+      --bg:#090b12;--bg2:#0e121a;--card:#0f141d;--muted:#9aa4b2;--text:#e7eef7;--accent:#7ee7d7;--accent2:#a78bfa;--danger:#ef4444;--good:#34d399;
+      --ring:0 0 0 2px rgba(126,231,215,.35),0 0 0 6px rgba(167,139,250,.18);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:radial-gradient(1200px 800px at 0% -10%, rgba(126,231,215,.12), transparent 40%),
+                            radial-gradient(1200px 800px at 100% 120%, rgba(167,139,250,.10), transparent 40%),
+                            linear-gradient(180deg,var(--bg) 0%,var(--bg2) 100%);
+         color:var(--text);font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
+    .wrap{max-width:1140px;margin:0 auto;padding:22px}
+    header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:16px}
+    .brand{display:flex;gap:12px;align-items:center}
+    .logo{width:40px;height:40px;border-radius:12px;background:conic-gradient(from 220deg, var(--accent), var(--accent2));filter:hue-rotate(15deg);box-shadow:0 10px 30px rgba(167,139,250,.35)}
+    h1{font-size:18px;margin:0;font-weight:800;letter-spacing:.2px}
+    .sub{color:var(--muted);font-size:12px}
+
+    .tabs{display:flex;gap:8px;flex-wrap:wrap}
+    .tab-btn{border:1px solid #223148;background:#111723;color:var(--text);padding:10px 14px;border-radius:12px;cursor:pointer}
+    .tab-btn[aria-selected="true"]{outline: none; border-color:#2b3647; box-shadow:var(--ring);}
+
+    .grid{display:grid;grid-template-columns:1.1fr 1fr;gap:14px}
+    @media (max-width: 900px){.grid{grid-template-columns:1fr}}
+
+    .card{background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,.00));border:1px solid #1b263a;border-radius:16px;padding:14px;box-shadow:0 8px 24px rgba(0,0,0,.35);backdrop-filter: blur(6px)}
+    .card h2{font-size:16px;margin:0 0 10px 0}
+    .muted{color:var(--muted)}
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+
+    label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+    input,select,textarea,button,datalist{font:inherit}
+    input,select,textarea{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #2b3647;background:#0f1319;color:var(--text)}
+    input:focus,select:focus,textarea:focus{outline:none;box-shadow:var(--ring);border-color:#334355}
+    button{padding:10px 14px;border-radius:12px;border:1px solid #2b3647;background:#141a22;color:var(--text);cursor:pointer}
+    .primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#071218;border:0;font-weight:800}
+    .danger{background:#2a1214;border-color:#5b1e23;color:#ffd5d5}
+    .ghost{background:transparent;border-color:#2b3647}
+    .warn{background:#2b1d12;border-color:#5f432f;color:#ffd9b3}
+
+    table{width:100%;border-collapse:separate;border-spacing:0;overflow:hidden;border-radius:12px;border:1px solid #223047}
+    th,td{text-align:left;padding:10px;border-bottom:1px solid #1d2739}
+    th{font-size:12px;color:var(--muted);background:#101622}
+    tr:last-child td{border-bottom:none}
+    .right{text-align:right}
+
+    .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:1px solid #2b3647;background:#0f141c;font-size:12px}
+    .ok{color:#0f3;border-color:rgba(110,231,183,.4)}
+    .bad{color:#ff6b6b;border-color:#5b1e23}
+
+    .section[hidden]{display:none}
+    .flex{display:flex;gap:10px;align-items:center}
+    .grow{flex:1}
+    .small{font-size:12px}
+
+    canvas{width:100%;height:300px;background:#0f141b;border-radius:12px;border:1px solid #223047}
+
+    .video-wrap{position:relative;border-radius:12px;overflow:hidden;border:1px solid #223047}
+    video{width:100%;height:auto;display:block;background:#000}
+    .scan-overlay{position:absolute;inset:0;border:2px dashed rgba(126,231,215,.6);border-radius:16px;margin:14px;pointer-events:none}
+
+    .tag{display:inline-block;background:#0f1825;border:1px solid #2b3b55;padding:6px 10px;border-radius:999px;margin:4px 4px 0 0;font-size:12px}
+    .kvs{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size:12px}
+  </style>
+
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0ea5e9">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+  #enhance-panel{position:fixed; right:16px; bottom:16px; z-index:99999; font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;}
+  #enhance-panel .card{background:rgba(17,24,39,0.95); color:#fff; padding:12px; border-radius:14px; box-shadow:0 10px 25px rgba(0,0,0,0.25); width:320px; max-height:70vh; overflow:auto;}
+  #enhance-panel h3{margin:0 0 8px 0; font-size:16px;}
+  #enhance-panel button,#enhance-panel input,#enhance-panel select{font-size:14px; padding:8px 10px; border-radius:10px; border:1px solid #374151; background:#111827; color:#fff;}
+  #enhance-panel button{cursor:pointer; background:#0ea5e9; border:none; color:#001018; font-weight:700;}
+  #enhance-panel button.secondary{background:#1f2937; color:#e5e7eb;}
+  #enhance-panel .row{display:flex; gap:8px; margin:6px 0; flex-wrap:wrap;}
+  #enhance-panel .muted{opacity:.8; font-size:12px;}
+  #enhance-panel .danger{background:#ef4444; color:#fff;}
+  #enhance-manager{display:none; margin-top:8px;}
+  #enhance-manager table{width:100%; border-collapse:collapse;}
+  #enhance-manager th,#enhance-manager td{border-bottom:1px solid #374151; padding:6px; font-size:12px;}
+  #enhance-manager tr:hover{background:rgba(255,255,255,0.04);}
+  #enhance-manager input,#enhance-manager select{width:100%;}
+  #quagga-modal{position:fixed; inset:0; background:rgba(0,0,0,0.8); display:none; align-items:center; justify-content:center; z-index:999999;}
+  #quagga-modal .modal-card{background:#111827; border-radius:16px; width:min(90vw,560px); padding:16px; color:#fff;}
+  #quagga{width:100%; height:300px; background:#000;}
+  .dash-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin:16px 0}
+  .dash-card{background:#0b1220; color:#e5e7eb; border:1px solid #1f2937; border-radius:16px; padding:14px}
+  .dash-card h3{margin:0 0 10px 0; font-size:16px}
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:#111827;border:1px solid #1f2937}
+  .ok{background:#10b98122;border-color:#10b98144}
+  .warn{background:#f59e0b22;border-color:#f59e0b44}
+  .bad{background:#ef444422;border-color:#ef444444}
+  canvas{max-width:100%;}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <h1>Lift • Run • Calories — Tracker v3.1</h1>
+          <div class="sub">Single-file • Offline-first • Firebase (v12 modules) for auth, Firestore sync & analytics</div>
+        </div>
+      </div>
+      <div class="row">
+        <button class="ghost" id="exportBtn" title="Download a backup JSON">Export</button>
+        <label for="importFile" class="tab-btn" style="cursor:pointer">Import</label>
+        <input id="importFile" type="file" accept="application/json" style="display:none" />
+        <button class="danger" id="resetBtn" title="Erase all local data">Reset</button>
+      </div>
+    </header>
+
+    <nav class="tabs" role="tablist" aria-label="Sections">
+      <button class="tab-btn" role="tab" aria-selected="true" data-tab="dashboard">Dashboard</button>
+      <button class="tab-btn" role="tab" data-tab="lifts">Lifts</button>
+      <button class="tab-btn" role="tab" data-tab="runs">Runs</button>
+      <button class="tab-btn" role="tab" data-tab="nutrition">Calories</button>
+      <button class="tab-btn" role="tab" data-tab="settings">Settings</button>
+    </nav>
+
+    <!-- DASHBOARD -->
+    <section class="section" id="dashboard">
+      <div class="grid">
+        <div class="card">
+          <h2>Today — calories</h2>
+          <div class="row">
+            <div class="pill"><strong id="todayCalories">0</strong> kcal</div>
+            <div class="pill"><span id="todayProtein">0</span> g protein</div>
+            <div class="pill"><span id="todayCarbs">0</span> g carbs</div>
+            <div class="pill"><span id="todayFat">0</span> g fat</div>
+            <div class="pill" id="goalPill">Goal: <span id="calGoal">—</span> kcal</div>
+          </div>
+          <div class="small muted" id="calStatus"></div>
+          <div style="margin-top:10px"><canvas id="calChart" width="800" height="300" aria-label="Calories last 7 days" role="img"></canvas></div>
+        </div>
+        <div class="card">
+          <h2>This week — training</h2>
+          <div class="row" style="margin-bottom:8px">
+            <div class="pill"><strong id="runsCount">0</strong> runs</div>
+            <div class="pill"><strong id="runsKm">0</strong> km</div>
+            <div class="pill"><strong id="liftsCount">0</strong> lift sessions</div>
+          </div>
+          <div style="margin-top:10px"><canvas id="trainChart" width="800" height="300" aria-label="Runs & lifts last 7 days" role="img"></canvas></div>
+        </div>
+      </div>
+
+      <div class="grid" style="margin-top:14px">
+        <div class="card">
+          <h2>Recent PRs</h2>
+          <div id="exerciseTags" class="small muted" style="margin-bottom:8px"></div>
+          <table id="prsTable"><thead><tr><th>Exercise</th><th class="right">Best</th><th>Date</th></tr></thead><tbody></tbody></table>
+        </div>
+        <div class="card">
+          <h2>Recent runs</h2>
+          <table id="recentRuns"><thead><tr><th>Date</th><th class="right">Distance (km)</th><th class="right">Time</th><th class="right">Pace</th></tr></thead><tbody></tbody></table>
+        </div>
+      </div>
+    </section>
+
+    <!-- LIFTS -->
+    <section class="section" id="lifts" hidden>
+      <div class="grid">
+        <div class="card">
+          <h2>Add lift</h2>
+          <div class="row">
+            <div class="grow">
+              <label>Exercise</label>
+              <input id="liftExercise" list="exerciseList" placeholder="Start typing or pick…" />
+              <datalist id="exerciseList"></datalist>
+            </div>
+            <div style="width:120px"><label>Weight (kg)</label><input id="liftWeight" type="number" step="0.5" /></div>
+            <div style="width:120px"><label>Reps</label><input id="liftReps" type="number" /></div>
+            <div style="width:160px"><label>Date</label><input id="liftDate" type="date" /></div>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <div class="grow"><label>Notes</label><input id="liftNotes" placeholder="optional" /></div>
+            <button class="primary" id="addLiftBtn">Add</button>
+          </div>
+        </div>
+        <div class="card">
+          <h2>History</h2>
+          <table id="liftsTable"><thead><tr><th>Date</th><th>Exercise</th><th class="right">Weight</th><th class="right">Reps</th><th>Notes</th></tr></thead><tbody></tbody></table>
+        </div>
+      </div>
+    </section>
+
+    <!-- RUNS -->
+    <section class="section" id="runs" hidden>
+      <div class="grid">
+        <div class="card">
+          <h2>Add run</h2>
+          <div class="row">
+            <div style="width:140px"><label>Distance (km)</label><input id="runKm" type="number" step="0.01" /></div>
+            <div style="width:160px"><label>Duration (mm:ss or hh:mm:ss)</label><input id="runTime" placeholder="25:30" /></div>
+            <div style="width:160px"><label>Date</label><input id="runDate" type="date" /></div>
+            <div class="grow"><label>Notes</label><input id="runNotes" placeholder="optional" /></div>
+            <button class="primary" id="addRunBtn">Add</button>
+          </div>
+        </div>
+        <div class="card">
+          <h2>History</h2>
+          <table id="runsTable"><thead><tr><th>Date</th><th class="right">Distance</th><th class="right">Time</th><th class="right">Pace /km</th><th>Notes</th></tr></thead><tbody></tbody></table>
+        </div>
+      </div>
+    </section>
+
+    <!-- NUTRITION -->
+    <section class="section" id="nutrition" hidden>
+      <div class="grid">
+        <div class="card">
+          <h2>Add food</h2>
+          <div class="row">
+            <div class="grow">
+              <label>Item</label>
+              <input id="foodName" list="foodList" placeholder="Start typing or pick…" />
+              <datalist id="foodList"></datalist>
+            </div>
+            <div style="width:140px"><label>Calories (kcal)</label><input id="foodCal" type="number" step="1" /></div>
+            <div style="width:120px"><label>Protein (g)</label><input id="foodP" type="number" step="0.1" /></div>
+            <div style="width:120px"><label>Carbs (g)</label><input id="foodC" type="number" step="0.1" /></div>
+            <div style="width:120px"><label>Fat (g)</label><input id="foodF" type="number" step="0.1" /></div>
+            <div style="width:160px"><label>Date</label><input id="foodDate" type="date" /></div>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <div class="grow"><label>Barcode (optional)</label><input id="foodBarcode" placeholder="auto-filled when scanning" /></div>
+            <button id="startScan" class="ghost">Scan barcode</button>
+            <button class="primary" id="addFoodBtn">Add</button>
+          </div>
+          <div id="scanArea" class="video-wrap" hidden>
+            <video id="video" playsinline></video>
+            <div class="scan-overlay" aria-hidden="true"></div>
+          </div>
+          <div class="small muted" id="scanStatus">Tip: first scan needs camera permission. Unknown barcodes can be saved to your personal library.</div>
+        </div>
+        <div class="card">
+          <h2>Today</h2>
+          <table id="foodTable"><thead><tr><th>Item</th><th class="right">kcal</th><th class="right">P</th><th class="right">C</th><th class="right">F</th><th>Barcode</th></tr></thead><tbody></tbody></table>
+        </div>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section class="section" id="settings" hidden>
+      <div class="grid">
+        <div class="card">
+          <h2>Goals</h2>
+          <div class="row">
+            <div style="width:200px"><label>Daily calorie goal</label><input id="goalCalories" type="number" step="1" placeholder="e.g., 2200" /></div>
+            <div style="width:200px"><label>Protein goal (g)</label><input id="goalProtein" type="number" step="1" placeholder="e.g., 160" /></div>
+            <button class="primary" id="saveGoalsBtn">Save goals</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Suggestion libraries</h2>
+          <p class="small muted">Pick from common items — and your history auto-adds to these lists.</p>
+          <div class="row">
+            <div class="grow">
+              <label>Exercises (one per line)</label>
+              <textarea id="editExercises" rows="8"></textarea>
+            </div>
+            <div class="grow">
+              <label>Foods (one per line)</label>
+              <textarea id="editFoods" rows="8"></textarea>
+            </div>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <button class="primary" id="saveLibrariesBtn">Save lists</button>
+            <button class="ghost" id="resetLibrariesBtn">Reset to defaults</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Cloud sync</h2>
+          <p class="small muted">Google Sign‑In → Optional realtime sync to Firestore. Your data is private per Google account. (Auth requires an <span class="kvs">http(s)://</span> origin.)</p>
+          <div class="row">
+            <button id="signinBtn" class="ghost">Sign in with Google</button>
+            <button id="signoutBtn" class="ghost">Sign out</button>
+            <div class="pill" id="authStatus">Not signed in</div>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <button id="syncUpBtn" class="primary">Sync UP (local → cloud)</button>
+            <button id="syncDownBtn" class="ghost">Sync DOWN (cloud → local)</button>
+            <label class="pill"><input id="liveToggle" type="checkbox"/> Realtime sync</label>
+          </div>
+          <p class="small muted">Cloud path: <code id="cloudPath">/users/{uid}/tracker/db</code></p>
+        </div>
+
+        <div class="card">
+          <h2>Diagnostics (self‑tests)</h2>
+          <div class="row">
+            <button id="runTestsBtn" class="warn">Run self‑test</button>
+            <div class="pill" id="envStatus">Env: checking…</div>
+          </div>
+          <ol id="testResults" class="small"></ol>
+          <p class="small muted">Tests cover: environment, auth, Firestore round‑trip, and live listener. Use this to verify hosting and permissions.</p>
+        </div>
+
+        <div class="card">
+          <h2>Data & privacy</h2>
+          <p class="small muted">All data is local unless you explicitly sync. Export/Import lets you back up or migrate devices.</p>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+<!-- Firebase v12 modules: app, analytics, auth, firestore -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+  import { getAnalytics, logEvent } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-analytics.js";
+  import { getAuth, GoogleAuthProvider, setPersistence, browserLocalPersistence, signInWithPopup, signInWithRedirect, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+  import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+
+  // === Your Firebase project (provided) ===
+  const firebaseConfig = {
+    apiKey: "AIzaSyD0t_bVEnF49FTl-o4DujybkQ3Qp6AA1Hk",
+    authDomain: "lift-ac60e.firebaseapp.com",
+    projectId: "lift-ac60e",
+    storageBucket: "lift-ac60e.firebasestorage.app",
+    messagingSenderId: "922334425193",
+    appId: "1:922334425193:web:24c364f3caca7892edb2f8",
+    measurementId: "G-0HVW6G0XH2"
+  };
+
+  // Init Firebase
+  const app = initializeApp(firebaseConfig);
+  let analytics = null;
+  try { analytics = getAnalytics(app); } catch(e) { /* analytics requires HTTPS + supported env */ }
+  const auth = getAuth(app);
+  const provider = new GoogleAuthProvider();
+  const fs = getFirestore(app);
+
+  // ===== App state & helpers (local + UI) =====
+  const $ = sel => document.querySelector(sel);
+  const $$ = sel => Array.from(document.querySelectorAll(sel));
+  const todayStr = () => new Date().toISOString().slice(0,10);
+  const weekStart = d => { const x=new Date(d); const day=x.getDay(); const diff=(day===0?6:day-1); x.setDate(x.getDate()-diff); x.setHours(0,0,0,0); return x; };
+
+  const defaultExercises = [
+    'Barbell Back Squat','Front Squat','Deadlift','Romanian Deadlift','Hip Thrust','Leg Press','Lunge','Calf Raise',
+    'Bench Press','Incline Bench Press','Dumbbell Bench Press','Push-Up','Chest Press (Machine)','Cable Fly',
+    'Overhead Press','Shoulder Press (Machine)','Lateral Raise','Face Pull','Rear Delt Fly',
+    'Barbell Row','Dumbbell Row','Lat Pulldown','Pull-Up','Seated Row','T-Bar Row',
+    'Biceps Curl','Hammer Curl','Triceps Pushdown','Skullcrusher','Cable Curl','Dips','Preacher Curl'
+  ];
+  const defaultFoods = [
+    'Chicken Breast','Turkey Mince','Salmon','Tuna (canned)','Eggs','Greek Yogurt','Cottage Cheese','Tofu','Tempeh','Lentils','Chickpeas','Kidney Beans',
+    'Rice (white)','Rice (brown)','Oats','Pasta','Bread','Potato','Sweet Potato','Avocado','Olive Oil','Peanut Butter','Banana','Apple','Broccoli','Spinach','Milk','Almond Milk','Whey Protein'
+  ];
+
+  const blank = { lifts: [], runs: [], foods: [], goals: { calories:null, protein:null }, barcodeDB: {}, libs: {exercises: defaultExercises, foods: defaultFoods} };
+  let db = load();
+  let liveUnsub = null; // Firestore onSnapshot unsubscribe
+  let authBusy = false;
+
+  // UI wire-up (tabs etc.)
+  $$(".tab-btn").forEach(btn=>btn.addEventListener('click',()=>{
+    $$(".tab-btn").forEach(b=>b.setAttribute('aria-selected','false'));
+    btn.setAttribute('aria-selected','true');
+    $$(".section").forEach(s=>s.hidden=true);
+    $('#'+btn.dataset.tab).hidden=false;
+    renderAll();
+  }));
+
+  ['liftDate','runDate','foodDate'].forEach(id=>{ const el=$('#'+id); if(el) el.value=todayStr(); });
+  $('#goalCalories').value = db.goals.calories ?? '';
+  $('#goalProtein').value = db.goals.protein ?? '';
+
+  // datalists
+  refreshDatalists();
+
+  // ===== CRUD actions =====
+  $('#addLiftBtn').addEventListener('click',()=>{
+    const ex = titleCase($('#liftExercise').value.trim());
+    const w = parseFloat($('#liftWeight').value);
+    const r = parseInt($('#liftReps').value,10);
+    const date = $('#liftDate').value || todayStr();
+    if(!ex || isNaN(w) || isNaN(r)) return alert('Please enter exercise, weight and reps');
+    db.lifts.push({id: uid(), date, exercise: ex, weight: w, reps: r, notes: $('#liftNotes').value.trim()});
+    addToLibrary('exercises', ex);
+    save();
+    try{ if(analytics) logEvent(analytics, 'add_lift', {exercise: ex}); }catch(_){ }
+    ['liftExercise','liftWeight','liftReps','liftNotes'].forEach(id=>$('#'+id).value='');
+    $('#liftDate').value=todayStr();
+    renderLifts(); renderDashboard(); refreshDatalists();
+    if($('#liveToggle').checked) cloudSyncUp();
+  });
+
+  $('#addRunBtn').addEventListener('click',()=>{
+    const km = parseFloat($('#runKm').value);
+    const durStr = $('#runTime').value.trim();
+    const date = $('#runDate').value || todayStr();
+    if(isNaN(km) || !durStr) return alert('Please enter distance and duration');
+    const secs = parseTimeToSecs(durStr);
+    if(secs===null) return alert('Use mm:ss or hh:mm:ss');
+    db.runs.push({id: uid(), date, km, secs, notes: $('#runNotes').value.trim()});
+    save();
+    try{ if(analytics) logEvent(analytics, 'add_run', {km}); }catch(_){ }
+    ['runKm','runTime','runNotes'].forEach(id=>$('#'+id).value='');
+    $('#runDate').value=todayStr();
+    renderRuns(); renderDashboard();
+    if($('#liveToggle').checked) cloudSyncUp();
+  });
+
+  $('#addFoodBtn').addEventListener('click',()=>{
+    const name = titleCase($('#foodName').value.trim());
+    const cal = parseFloat($('#foodCal').value||0);
+    const p = parseFloat($('#foodP').value||0);
+    const c = parseFloat($('#foodC').value||0);
+    const f = parseFloat($('#foodF').value||0);
+    const date = $('#foodDate').value || todayStr();
+    const code = $('#foodBarcode').value.trim();
+    if(!name || isNaN(cal)) return alert('Please enter at least item name and calories');
+    const entry = {id: uid(), date, name, cal, p, c, f, barcode: code||null};
+    db.foods.push(entry);
+    if(code){ db.barcodeDB[code] = { name, cal, p, c, f }; }
+    addToLibrary('foods', name);
+    save();
+    try{ if(analytics) logEvent(analytics, 'add_food', {name}); }catch(_){ }
+    ['foodName','foodCal','foodP','foodC','foodF','foodBarcode'].forEach(id=>$('#'+id).value='');
+    $('#foodDate').value=todayStr();
+    renderFoods(); renderDashboard(); refreshDatalists();
+    if($('#liveToggle').checked) cloudSyncUp();
+  });
+
+  // Goals & libraries
+  $('#saveGoalsBtn').addEventListener('click',()=>{
+    const gC = parseInt($('#goalCalories').value||'');
+    const gP = parseInt($('#goalProtein').value||'');
+    db.goals.calories = isNaN(gC)? null : gC;
+    db.goals.protein = isNaN(gP)? null : gP;
+    save(); renderDashboard(); alert('Goals saved.');
+    if($('#liveToggle').checked) cloudSyncUp();
+  });
+  $('#saveLibrariesBtn').addEventListener('click',()=>{
+    db.libs.exercises = lines($('#editExercises').value);
+    db.libs.foods = lines($('#editFoods').value);
+    save(); refreshDatalists(); alert('Suggestion lists updated.');
+    if($('#liveToggle').checked) cloudSyncUp();
+  });
+  $('#resetLibrariesBtn').addEventListener('click',()=>{
+    if(!confirm('Reset suggestion lists to defaults?')) return;
+    db.libs.exercises = defaultExercises.slice();
+    db.libs.foods = defaultFoods.slice();
+    save();
+    $('#editExercises').value = db.libs.exercises.join('\n');
+    $('#editFoods').value = db.libs.foods.join('\n');
+    refreshDatalists();
+    if($('#liveToggle').checked) cloudSyncUp();
+  });
+
+  // Export / import / reset (local)
+  $('#exportBtn').addEventListener('click',()=>{
+    const blob = new Blob([JSON.stringify(db,null,2)],{type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'fitness-tracker-backup-'+todayStr()+'.json';
+    a.click(); URL.revokeObjectURL(a.href);
+  });
+  $('#importFile').addEventListener('change', ev=>{
+    const file = ev.target.files[0]; if(!file) return;
+    const fr = new FileReader();
+    fr.onload = () => { try { db = JSON.parse(fr.result); save(true); renderAll(); refreshDatalists(); alert('Import complete.'); if($('#liveToggle').checked) cloudSyncUp(); } catch(e){ alert('Invalid file.'); } };
+    fr.readAsText(file);
+  });
+  $('#resetBtn').addEventListener('click',()=>{
+    if(confirm('Erase ALL local data? This cannot be undone.')){ db = JSON.parse(JSON.stringify(blank)); save(true); renderAll(); refreshDatalists(); if($('#liveToggle').checked) cloudSyncUp(); }
+  });
+
+  // ===== Barcode scanner =====
+  let stream=null, detector=null, scanTimer=null;
+  const startScan = async () => {
+    if(!('BarcodeDetector' in window)){
+      alert('Barcode scanning not supported in this browser. Use Chrome/Edge on desktop or Android.');
+      return;
+    }
+    try {
+      detector = detector || new BarcodeDetector({formats:['ean_13','ean_8','upc_a','code_128','code_39']});
+      stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+      $('#video').srcObject = stream; $('#video').play();
+      $('#scanArea').hidden=false; $('#startScan').disabled=true;
+      $('#scanStatus').textContent = 'Scanning… hold steady over the barcode.';
+      tickScan();
+    } catch(err){ alert('Camera access failed: '+err.message); }
+  };
+  const stopScan = () => { clearTimeout(scanTimer); scanTimer=null; if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; } $('#scanArea').hidden=true; $('#startScan').disabled=false; $('#scanStatus').textContent = 'Scanner stopped.'; };
+  const tickScan = async () => {
+    if(!stream) return;
+    try{
+      const video = $('#video');
+      if(video.readyState>=2){
+        const canvas = document.createElement('canvas'); canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d'); ctx.drawImage(video,0,0);
+        const codes = await detector.detect(canvas);
+        if(codes && codes.length){
+          const code = codes[0].rawValue; $('#foodBarcode').value = code;
+          const known = db.barcodeDB[code];
+          if(known){ $('#foodName').value = known.name||''; $('#foodCal').value = known.cal||''; $('#foodP').value = known.p||''; $('#foodC').value = known.c||''; $('#foodF').value = known.f||''; $('#scanStatus').textContent = 'Recognised '+code+' — prefilled from your history.'; }
+          else { $('#scanStatus').textContent = 'Scanned '+code+' — enter details then "Add" to save mapping.'; }
+          stopScan(); return;
+        }
+      }
+    }catch(e){ console.warn(e); }
+    scanTimer = setTimeout(tickScan, 150);
+  };
+  $('#startScan').addEventListener('click',()=>{ if(stream){ stopScan(); } else { startScan(); } });
+  document.addEventListener('visibilitychange',()=>{ if(document.hidden) stopScan(); });
+
+  // ===== Firebase auth & Firestore sync =====
+  const userDocRef = () => auth.currentUser ? doc(fs, 'users', auth.currentUser.uid, 'tracker', 'db') : null;
+
+  // Environment check — Auth only works on http(s)
+  const envOk = location.protocol.startsWith('http');
+  $('#envStatus').textContent = envOk ? 'Env: OK (http/https)' : 'Env: file:// (Auth disabled)';
+  $('#signinBtn').disabled = !envOk; $('#signoutBtn').disabled = !envOk;
+
+  // Ensure deterministic persistence before any sign-in attempt
+  (async ()=>{ try { await setPersistence(auth, browserLocalPersistence); } catch(e) { console.warn('Persistence set failed:', e); } })();
+
+  $('#signinBtn').addEventListener('click', async ()=>{
+    if(!envOk) return alert('Google Sign-In requires hosting over http(s). Try GitHub Pages or Netlify.');
+    if(authBusy) return; authBusy = true; $('#signinBtn').disabled = true;
+    try{
+      await setPersistence(auth, browserLocalPersistence);
+      await signInWithPopup(auth, provider);
+    } catch(e){
+      // Fallback to redirect if popup blocked
+      if(e && (e.code === 'auth/popup-blocked' || e.code === 'auth/cancelled-popup-request')){
+        try { await signInWithRedirect(auth, provider); }
+        catch (e2) { alert('Sign-in failed: '+(e2.message||e2)); }
+      } else {
+        alert('Sign-in failed: '+(e.message||e));
+      }
+    } finally {
+      authBusy = false; $('#signinBtn').disabled = false;
+    }
+  });
+
+  $('#signoutBtn').addEventListener('click', async ()=>{
+    if(liveUnsub) { liveUnsub(); liveUnsub=null; }
+    try{ await signOut(auth); }catch(e){ alert('Sign out failed: '+(e.message||e)); }
+  });
+
+  $('#syncUpBtn').addEventListener('click', cloudSyncUp);
+  $('#syncDownBtn').addEventListener('click', cloudSyncDown);
+  $('#liveToggle').addEventListener('change', ()=>{ if($('#liveToggle').checked) startLive(); else stopLive(); });
+
+  onAuthStateChanged(auth, (user)=>{
+    if(user){
+      $('#authStatus').textContent = 'Signed in as '+(user.displayName||user.email);
+      $('#cloudPath').textContent = '/users/'+user.uid+'/tracker/db';
+      if($('#liveToggle').checked) startLive();
+    } else {
+      $('#authStatus').textContent = 'Not signed in';
+      $('#cloudPath').textContent = '/users/{uid}/tracker/db';
+      stopLive();
+    }
+  });
+
+  async function cloudSyncUp(){
+    const ref = userDocRef(); if(!ref) return alert('Sign in first.');
+    try { await setDoc(ref, {db}, {merge:true}); try{ if(analytics) logEvent(analytics, 'sync_up'); }catch(_){ } alert('Uploaded local data to cloud.'); }
+    catch(e){ alert('Sync up failed: '+(e.message||e)); }
+  }
+  async function cloudSyncDown(){
+    const ref = userDocRef(); if(!ref) return alert('Sign in first.');
+    try { const snap = await getDoc(ref); if(!snap.exists()) return alert('No cloud data yet.'); const remote = snap.data().db; if(!remote) return alert('Cloud doc empty.'); if(!confirm('Replace local data with cloud data?')) return; db = remote; save(true); renderAll(); refreshDatalists(); try{ if(analytics) logEvent(analytics, 'sync_down'); }catch(_){ } }
+    catch(e){ alert('Sync down failed: '+(e.message||e)); }
+  }
+  function startLive(){
+    stopLive();
+    const ref = userDocRef(); if(!ref) return;
+    liveUnsub = onSnapshot(ref, {
+      next: (snap)=>{ const remote = snap.data() && snap.data().db; if(!remote) return; db = remote; save(true); renderAll(); refreshDatalists(); },
+      error: (e)=>{ console.error('Live sync error:', e); alert('Realtime sync error: '+(e.message||e)); stopLive(); $('#liveToggle').checked=false; }
+    });
+  }
+  function stopLive(){ if(liveUnsub){ liveUnsub(); liveUnsub=null; } }
+
+  // ===== Diagnostics (self-tests) =====
+  $('#runTestsBtn').addEventListener('click', async ()=>{
+    const out = $('#testResults'); out.innerHTML='';
+    const add = (msg, ok=true) => { const li=document.createElement('li'); li.textContent = (ok? '✅ ':'❌ ')+msg; out.appendChild(li); };
+
+    // Env
+    add('Environment protocol: '+location.protocol+(envOk?' (OK)':' (Auth not supported; host this file)') , envOk);
+
+    // Auth state
+    if(!envOk){ add('Auth test skipped: not on http(s).', false); return; }
+
+    try{ await setPersistence(auth, browserLocalPersistence); add('Auth persistence set.'); }catch(e){ add('Auth persistence failed: '+(e.message||e), false); }
+
+    if(!auth.currentUser){ add('Not signed in — sign in and re-run tests.', false); return; }
+    else { add('Signed in as '+(auth.currentUser.email||auth.currentUser.uid)); }
+
+    // Firestore round trip
+    try{
+      const ref = doc(fs, 'users', auth.currentUser.uid, 'tracker', '_health');
+      const stamp = Date.now();
+      await setDoc(ref, { t: stamp });
+      const snap = await getDoc(ref);
+      const ok = snap.exists() && snap.data().t === stamp;
+      add('Firestore round-trip write/read', ok);
+    } catch(e){ add('Firestore round-trip failed: '+(e.message||e), false); }
+
+    // Live listener quick check
+    try{
+      const ref = userDocRef(); if(!ref) throw new Error('No user doc');
+      const once = new Promise((resolve,reject)=>{
+        const unsub = onSnapshot(ref, { next:()=>{ unsub(); resolve(true); }, error:(e)=>{ unsub(); reject(e); } });
+      });
+      const ok = await Promise.race([ once, new Promise(r=>setTimeout(()=>r(false), 3000)) ]);
+      add('Realtime listener attaches', !!ok);
+    }catch(e){ add('Realtime listener failed: '+(e.message||e), false); }
+  });
+
+  // ===== Utilities & renderers =====
+  function uid(){ return Math.random().toString(36).slice(2)+Date.now().toString(36); }
+  function save(overwrite){ localStorage.setItem('frc-db', JSON.stringify(db)); if(overwrite) db = load(); }
+  function load(){ try{ return JSON.parse(localStorage.getItem('frc-db')) || JSON.parse(JSON.stringify(blank)); }catch(e){ return JSON.parse(JSON.stringify(blank)); } }
+  function parseTimeToSecs(str){ const parts = str.split(':').map(x=>parseInt(x,10)); if(parts.some(isNaN)) return null; if(parts.length===2){ const [m,s]=parts; return m*60+s; } if(parts.length===3){ const [h,m,s]=parts; return h*3600+m*60+s; } return null; }
+  function paceStr(km, secs){ if(km<=0) return '—'; const pace = secs/km; const m=Math.floor(pace/60), s=Math.round(pace%60).toString().padStart(2,'0'); return `${m}:${s}`; }
+  function fmtDate(d){ return d; }
+  function escapeHtml(s){ return (s||'').replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c])); }
+  function titleCase(s){ if(!s) return s; return s.replace(/\w\S*/g, (t)=> t.charAt(0).toUpperCase()+t.slice(1).toLowerCase()); }
+  function lines(s){ return s.split(/\r?\n/).map(x=>x.trim()).filter(Boolean); }
+  function addToLibrary(which, item){ const arr = which==='exercises'? db.libs.exercises : db.libs.foods; if(!arr.includes(item)){ arr.push(item); const box = which==='exercises'? '#editExercises' : '#editFoods'; $(box).value = arr.join('\n'); } }
+
+  function refreshDatalists(){
+    const exSet = new Set(db.libs.exercises.concat(db.lifts.map(l=>l.exercise)));
+    const fdSet = new Set(db.libs.foods.concat(db.foods.map(f=>f.name)));
+    $('#exerciseList').innerHTML = [...exSet].sort().map(x=>`<option value="${escapeHtml(x)}">`).join('');
+    $('#foodList').innerHTML = [...fdSet].sort().map(x=>`<option value="${escapeHtml(x)}">`).join('');
+    $('#editExercises').value = db.libs.exercises.join('\n');
+    $('#editFoods').value = db.libs.foods.join('\n');
+    $('#exerciseTags').innerHTML = [...exSet].slice(0,18).map(x=>`<span class="tag">${escapeHtml(x)}</span>`).join('');
+  }
+
+  function renderLifts(){
+    const tbody = $('#liftsTable tbody'); tbody.innerHTML='';
+    const rows = [...db.lifts].sort((a,b)=>b.date.localeCompare(a.date));
+    for(const x of rows){
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${fmtDate(x.date)}</td><td>${escapeHtml(x.exercise)}</td><td class="right">${x.weight.toFixed(1)} kg</td><td class="right">${x.reps}</td><td>${escapeHtml(x.notes||'')}</td>`;
+      tbody.appendChild(tr);
+    }
+    const best = {};
+    for(const x of db.lifts){ const key = x.exercise.toLowerCase(); if(!best[key] || x.weight>best[key].weight){ best[key] = {exercise:x.exercise, weight:x.weight, date:x.date}; } }
+    const prs = Object.values(best).sort((a,b)=>b.weight-a.weight).slice(0,6);
+    const prBody = $('#prsTable tbody'); prBody.innerHTML='';
+    for(const p of prs){ const tr = document.createElement('tr'); tr.innerHTML = `<td>${escapeHtml(p.exercise)}</td><td class="right">${p.weight.toFixed(1)} kg</td><td>${fmtDate(p.date)}</td>`; prBody.appendChild(tr); }
+  }
+
+  function renderRuns(){
+    const tbody = $('#runsTable tbody'); tbody.innerHTML='';
+    const rows = [...db.runs].sort((a,b)=>b.date.localeCompare(a.date));
+    for(const r of rows){ const tr = document.createElement('tr'); tr.innerHTML = `<td>${fmtDate(r.date)}</td><td class="right">${r.km.toFixed(2)}</td><td class="right">${secsToStr(r.secs)}</td><td class="right">${paceStr(r.km,r.secs)}</td><td>${escapeHtml(r.notes||'')}</td>`; tbody.appendChild(tr); }
+    const recentBody = $('#recentRuns tbody'); recentBody.innerHTML='';
+    for(const r of rows.slice(0,6)){ const tr = document.createElement('tr'); tr.innerHTML = `<td>${fmtDate(r.date)}</td><td class="right">${r.km.toFixed(2)}</td><td class="right">${secsToStr(r.secs)}</td><td class="right">${paceStr(r.km,r.secs)}</td>`; recentBody.appendChild(tr); }
+  }
+
+  function renderFoods(){
+    const tbody = $('#foodTable tbody'); tbody.innerHTML='';
+    const today = todayStr();
+    const todayFoods = db.foods.filter(f=>f.date===today);
+    for(const f of todayFoods){ const tr = document.createElement('tr'); tr.innerHTML = `<td>${escapeHtml(f.name)}</td><td class="right">${(f.cal||0).toFixed(0)}</td><td class="right">${(f.p||0).toFixed(0)}</td><td class="right">${(f.c||0).toFixed(0)}</td><td class="right">${(f.f||0).toFixed(0)}</td><td>${f.barcode||''}</td>`; tbody.appendChild(tr); }
+    const tCal = todayFoods.reduce((a,b)=>a+(+b.cal||0),0);
+    const tP = todayFoods.reduce((a,b)=>a+(+b.p||0),0);
+    const tC = todayFoods.reduce((a,b)=>a+(+b.c||0),0);
+    const tF = todayFoods.reduce((a,b)=>a+(+b.f||0),0);
+    $('#todayCalories').textContent = tCal.toFixed(0);
+    $('#todayProtein').textContent = tP.toFixed(0);
+    $('#todayCarbs').textContent = tC.toFixed(0);
+    $('#todayFat').textContent = tF.toFixed(0);
+    $('#calGoal').textContent = db.goals.calories??'—';
+    const status = db.goals.calories? (tCal<=db.goals.calories? `Under goal by ${db.goals.calories - tCal} kcal` : `Over goal by ${tCal - db.goals.calories} kcal`) : 'Set a goal in Settings';
+    $('#calStatus').textContent = status;
+    drawCaloriesChart();
+  }
+
+  function renderDashboard(){
+    renderFoods();
+    const start = weekStart(new Date());
+    const inWeek = d => new Date(d)>=start;
+    const weekRuns = db.runs.filter(r=>inWeek(r.date));
+    const weekLifts = db.lifts.filter(l=>inWeek(l.date));
+    $('#runsCount').textContent = weekRuns.length;
+    $('#runsKm').textContent = weekRuns.reduce((a,b)=>a+b.km,0).toFixed(2);
+    $('#liftsCount').textContent = weekLifts.length;
+    drawTrainChart();
+    renderLifts(); renderRuns();
+  }
+
+  function renderAll(){ renderLifts(); renderRuns(); renderFoods(); renderDashboard(); }
+
+  function secsToStr(secs){ const h = Math.floor(secs/3600), m = Math.floor((secs%3600)/60), s = Math.round(secs%60); return (h? h.toString().padStart(2,'0')+':':'')+m.toString().padStart(2,'0')+':'+s.toString().padStart(2,'0'); }
+
+  // Simple charts (Canvas 2D)
+  function drawCaloriesChart(){
+    const el = $('#calChart'); const ctx = el.getContext('2d'); ctx.clearRect(0,0,el.width,el.height);
+    const days = [...Array(7)].map((_,i)=>{ const d=new Date(); d.setDate(d.getDate()- (6-i)); return d.toISOString().slice(0,10); });
+    const vals = days.map(d=> db.foods.filter(f=>f.date===d).reduce((a,b)=>a+(+b.cal||0),0));
+    const max = Math.max(2000, ...vals, db.goals.calories||0);
+    const pad=30; const w=el.width-pad*2, h=el.height-pad*2;
+    ctx.globalAlpha=0.6; ctx.strokeStyle="#304055"; ctx.beginPath(); ctx.moveTo(pad, pad); ctx.lineTo(pad, pad+h); ctx.lineTo(pad+w, pad+h); ctx.stroke(); ctx.globalAlpha=1;
+    if(db.goals.calories){ ctx.setLineDash([6,6]); ctx.strokeStyle="#7ee7d7"; const y=pad+h - (db.goals.calories/max)*h; ctx.beginPath(); ctx.moveTo(pad, y); ctx.lineTo(pad+w, y); ctx.stroke(); ctx.setLineDash([]); }
+    const bw = w/7*0.6; const gap=w/7*0.4;
+    vals.forEach((v,i)=>{ const x=pad+i*(bw+gap)+(gap/2); const y=pad+h-(v/max)*h; const bh= (v/max)*h; ctx.fillStyle="#a78bfa"; ctx.fillRect(x,y,bw,bh); });
+    ctx.fillStyle="#9aa4b2"; ctx.font="12px system-ui";
+    days.forEach((d,i)=>{ const dt=new Date(d); const lab=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dt.getDay()]; const x=pad+i*(w/7)+w/14; ctx.textAlign='center'; ctx.fillText(lab,x,pad+h+16); });
+  }
+  function drawTrainChart(){
+    const el = $('#trainChart'); const ctx = el.getContext('2d'); ctx.clearRect(0,0,el.width,el.height);
+    const days = [...Array(7)].map((_,i)=>{ const d=new Date(); d.setDate(d.getDate()- (6-i)); return d.toISOString().slice(0,10); });
+    const runs = days.map(d=> db.runs.filter(r=>r.date===d).reduce((a,b)=>a+b.km,0));
+    const lifts = days.map(d=> db.lifts.filter(l=>l.date===d).length);
+    const max = Math.max(1, ...runs, ...lifts);
+    const pad=30; const w=el.width-pad*2, h=el.height-pad*2;
+    ctx.globalAlpha=0.6; ctx.strokeStyle="#304055"; ctx.beginPath(); ctx.moveTo(pad, pad); ctx.lineTo(pad, pad+h); ctx.lineTo(pad+w, pad+h); ctx.stroke(); ctx.globalAlpha=1;
+    ctx.strokeStyle="#7ee7d7"; ctx.beginPath(); runs.forEach((v,i)=>{ const x=pad+(i/6)*w; const y=pad+h-(v/max)*h; if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); }); ctx.stroke();
+    ctx.strokeStyle="#a78bfa"; ctx.beginPath(); lifts.forEach((v,i)=>{ const x=pad+(i/6)*w; const y=pad+h-(v/max)*h; if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); }); ctx.stroke();
+    ctx.fillStyle="#9aa4b2"; ctx.font="12px system-ui";
+    days.forEach((d,i)=>{ const dt=new Date(d); const lab=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dt.getDay()]; const x=pad+i*(w/7)+w/14; ctx.textAlign='center'; ctx.fillText(lab,x,pad+h+16); });
+  }
+
+  // Initial render
+  renderAll(); refreshDatalists();
+</script>
+<script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-analytics.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  const firebaseConfig = {
+    apiKey: "AIzaSyD0t_bVEnF49FTl-o4DujybkQ3Qp6AA1Hk",
+    authDomain: "lift-ac60e.firebaseapp.com",
+    projectId: "lift-ac60e",
+    storageBucket: "lift-ac60e.firebasestorage.app",
+    messagingSenderId: "922334425193",
+    appId: "1:922334425193:web:24c364f3caca7892edb2f8",
+    measurementId: "G-0HVW6G0XH2"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+</script>
+
+<div id="enhance-panel">
+  <div class="card">
+    <h3>⚡ Tools</h3>
+    <div class="row">
+      <select id="enhance-collection">
+        <option value="lifts">lifts</option>
+        <option value="runs">runs</option>
+        <option value="foods">foods</option>
+      </select>
+      <button id="btn-export">Export CSV</button>
+      <label class="secondary" style="display:inline-flex;align-items:center;gap:6px;">
+        <input id="file-import" type="file" accept=".csv" style="display:none">
+        <button id="btn-import" class="secondary">Import CSV</button>
+      </label>
+    </div>
+    <div class="row">
+      <button id="btn-manager" class="secondary">Open Manager</button>
+      <button id="btn-scan" class="secondary">Scan Barcode (iOS fallback)</button>
+    </div>
+    <details>
+      <summary>About these extras</summary>
+      <div class="muted">
+        • CSV export/import for lifts, runs, foods.<br>
+        • Manager view: Edit/Delete entries inline.<br>
+        • iOS-friendly barcode scanning fallback using Quagga2.<br>
+        • Installable PWA with offline cache.<br>
+        • MyFitnessPal & Strava importers (buttons appear above Manager).
+      </div>
+    </details>
+    <div class="row" id="importers-row"></div>
+    <div id="enhance-manager"></div>
+  </div>
+</div>
+<div id="quagga-modal">
+  <div class="modal-card">
+    <div class="row" style="justify-content:space-between;align-items:center;">
+      <strong>Barcode scanner (fallback)</strong>
+      <button id="quagga-close" class="secondary">Close</button>
+    </div>
+    <div id="quagga"></div>
+    <div class="muted" style="margin-top:8px;">Point your camera at a barcode. Detected value will be copied to clipboard.</div>
+  </div>
+</div>
+
+<div class="dash-grid" id="lr-dashboard" style="display:none">
+  <div class="dash-card">
+    <h3>🏋️ Per‑Exercise Progress</h3>
+    <div class="row" style="display:flex;gap:8px;flex-wrap:wrap">
+      <select id="ex-select"></select>
+      <button id="ex-metric-1rm" class="pill">Est. 1RM</button>
+      <button id="ex-metric-volume" class="pill">Volume</button>
+      <button id="ex-metric-weight" class="pill">Top Set</button>
+    </div>
+    <canvas id="ex-chart" height="200"></canvas>
+    <div id="pr-strip" style="margin-top:8px;font-size:12px;opacity:.8"></div>
+  </div>
+  <div class="dash-card">
+    <h3>🏃 Weekly Runs</h3>
+    <canvas id="run-dist-chart" height="200"></canvas>
+    <canvas id="run-pace-chart" height="200" style="margin-top:12px"></canvas>
+  </div>
+  <div class="dash-card">
+    <h3>🍽️ Today’s Macros</h3>
+    <div class="row" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <label>Calories <input id="target-kcal" type="number" placeholder="kcal" style="width:90px"></label>
+      <label>Protein <input id="target-pro" type="number" placeholder="g" style="width:80px"></label>
+      <label>Carbs <input id="target-carbs" type="number" placeholder="g" style="width:80px"></label>
+      <label>Fat <input id="target-fat" type="number" placeholder="g" style="width:80px"></label>
+      <button id="save-targets" class="pill">Save</button>
+    </div>
+    <div id="macro-summary" style="margin-top:8px"></div>
+  </div>
+  <div class="dash-card">
+    <h3>🔥 Streaks & Badges</h3>
+    <div id="streaks"></div>
+    <div id="badges" style="margin-top:8px"></div>
+  </div>
+</div>
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2/dist/quagga.min.js"></script>
+<script>
+(function(){
+  // Show dashboard when page ready
+  window.addEventListener('load', () => {
+    const dash = document.getElementById('lr-dashboard');
+    if (dash) dash.style.display = 'grid';
+  });
+
+  // ---------- Helpers ----------
+  function toCSV(rows){ if(!rows||!rows.length) return ''; const headers = Array.from(new Set(rows.flatMap(r=>Object.keys(r))));
+    const esc=v=>{ if(v==null) return ''; v=String(v); return /[",\n]/.test(v)? '"'+v.replaceAll('"','""')+'"': v; };
+    const lines=[headers.join(',')].concat(rows.map(r=>headers.map(h=>esc(r[h])).join(','))); return lines.join('\n'); }
+  function fromCSV(text){ const lines=text.split(/\r?\n/).filter(Boolean); if(!lines.length) return []; const headers=lines[0].split(',').map(h=>h.replace(/^"|"$/g,''));
+    const rows=[]; for(let i=1;i<lines.length;i++){ const s=lines[i]; let row=[],cur='',inQ=false; for(let j=0;j<s.length;j++){ const ch=s[j];
+      if(inQ){ if(ch==='"'){ if(s[j+1]==='"'){cur+='"'; j++;} else inQ=false; } else cur+=ch; } else { if(ch===','){ row.push(cur); cur=''; } else if(ch==='"'){ inQ=true; } else cur+=ch; } }
+      row.push(cur); const obj={}; headers.forEach((h,idx)=> obj[h]=row[idx]??''); rows.push(obj);} return rows; }
+  const dFmt = (ts)=> new Date(ts).toISOString().slice(0,10);
+  const toWeek = (d)=>{ const dt=new Date(d); const day=(dt.getUTCDay()+6)%7; dt.setUTCDate(dt.getUTCDate()-day); return dt.toISOString().slice(0,10); };
+  const oneRM = (w,reps)=>{ w=+w; reps=+reps; if(!w||!reps) return 0; return Math.round(w*(1+reps/30)); };
+
+  // ---------- Firebase access ----------
+  async function ensureFirebase(){
+    if (window.firebaseDb && window.firebaseAuth) return true;
+    try{
+      const [{ getApp }, { getAuth }, { getFirestore }] = await Promise.all([
+        import('https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js'),
+        import('https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js'),
+        import('https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js'),
+      ]);
+      const app = getApp();
+      window.firebaseAuth = getAuth(app);
+      window.firebaseDb = getFirestore(app);
+      return true;
+    }catch(e){ console.warn('Firebase not ready', e); return false; }
+  }
+  async function getCollectionDocs(col){
+    await ensureFirebase();
+    if (!window.firebaseDb || !window.firebaseAuth || !window.firebaseAuth.currentUser) return [];
+    const { collection, getDocs, query } = await import('https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js');
+    const ref = collection(window.firebaseDb, 'users', window.firebaseAuth.currentUser.uid, col);
+    const snap = await getDocs(query(ref)); const out=[]; snap.forEach(d=> out.push({id:d.id, ...d.data()})); return out;
+  }
+  async function upsertDoc(col,id,data){ const { doc,setDoc } = await import('https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js'); const ref=doc(window.firebaseDb,'users',window.firebaseAuth.currentUser.uid,col,id); await setDoc(ref,data,{merge:true}); }
+  async function addDocAuto(col,data){ const { collection,addDoc } = await import('https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js'); const ref=collection(window.firebaseDb,'users',window.firebaseAuth.currentUser.uid,col); await addDoc(ref,{...data,_ts:Date.now()}); }
+  async function deleteDocById(col,id){ const { doc,deleteDoc } = await import('https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js'); const ref=doc(window.firebaseDb,'users',window.firebaseAuth.currentUser.uid,col,id); await deleteDoc(ref); }
+
+  // ---------- Tools: export/import/manager ----------
+  const sel = ()=>document.getElementById('enhance-collection');
+  const managerDiv = ()=>document.getElementById('enhance-manager');
+  document.getElementById('btn-export')?.addEventListener('click', async()=>{
+    const col = sel().value; const docs = await getCollectionDocs(col); const csv = toCSV(docs);
+    const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download=col+'.csv'; a.click(); URL.revokeObjectURL(a.href);
+  });
+  document.getElementById('btn-import')?.addEventListener('click', ()=> document.getElementById('file-import').click());
+  document.getElementById('file-import')?.addEventListener('change', async(e)=>{
+    const file=e.target.files[0]; if(!file) return; const text=await file.text(); const rows=fromCSV(text); const col=sel().value;
+    if(!confirm('Import '+rows.length+' rows into "'+col+'"?')) return;
+    for(const r of rows){ const id=r.id||undefined; delete r.id; if(id) await upsertDoc(col,id,r); else await addDocAuto(col,r); }
+    alert('Import complete.'); if (managerDiv().style.display!=='none') renderManager();
+  });
+  document.getElementById('btn-manager')?.addEventListener('click', ()=>{
+    const m=managerDiv(); if (m.style.display==='none'||!m.style.display){ renderManager(); m.style.display='block'; } else { m.style.display='none'; }
+  });
+  async function renderManager(){
+    const col=sel().value; const docs=await getCollectionDocs(col);
+    const cols=Array.from(new Set(docs.flatMap(o=>Object.keys(o))));
+    const head=cols.map(c=>`<th>${c}</th>`).join('') + '<th>Actions</th>';
+    const rows=docs.map(d=> cols.map(c=>`<td><input data-field="${c}" data-id="${d.id}" value="${(d[c]??'').toString().replace(/"/g,'&quot;')}"></td>`).join('') + `<td><button data-del="${d.id}" class="danger">Delete</button></td>` ).map(r=>`<tr>${r}</tr>`).join('');
+    managerDiv().innerHTML = `<div class="row"><input id="enhance-filter" placeholder="Filter..."><button id="enhance-save" class="secondary">Save Changes</button></div><div style="overflow:auto;"><table><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></div>`;
+    managerDiv().querySelector('#enhance-save').addEventListener('click', async ()=>{
+      const inputs=managerDiv().querySelectorAll('input[data-id][data-field]'); const grouped={};
+      inputs.forEach(inp=>{ const id=inp.getAttribute('data-id'); const field=inp.getAttribute('data-field'); grouped[id]=grouped[id]||{}; grouped[id][field]=inp.value; });
+      for (const [id,data] of Object.entries(grouped)){ await upsertDoc(sel().value,id,data); } alert('Saved.');
+    });
+    managerDiv().querySelectorAll('button[data-del]').forEach(btn=> btn.addEventListener('click', async()=>{ const id=btn.getAttribute('data-del'); if(confirm('Delete this entry?')){ await deleteDocById(sel().value,id); renderManager(); } }));
+    const filter=managerDiv().querySelector('#enhance-filter'); filter.addEventListener('input', ()=>{ const q=filter.value.toLowerCase(); managerDiv().querySelectorAll('tbody tr').forEach(tr=>{ tr.style.display = tr.innerText.toLowerCase().includes(q)? '':'none'; }); });
+  }
+
+  // ---------- Importers row ----------
+  (function addImporters(){
+    const row=document.getElementById('importers-row'); if(!row) return;
+    row.innerHTML = '<button id="imp-mfp" class="secondary">Import MyFitnessPal CSV</button><button id="imp-strava" class="secondary">Import Strava CSV</button>';
+    row.querySelector('#imp-mfp').addEventListener('click', async()=>{
+      const inp=document.createElement('input'); inp.type='file'; inp.accept='.csv'; inp.onchange=async()=>{ const t=await inp.files[0].text(); await importMFP(t); }; inp.click();
+    });
+    row.querySelector('#imp-strava').addEventListener('click', async()=>{
+      const inp=document.createElement('input'); inp.type='file'; inp.accept='.csv'; inp.onchange=async()=>{ const t=await inp.files[0].text(); await importStrava(t); }; inp.click();
+    });
+  })();
+
+  // ---------- Barcode: fallback + OFF ----------
+  const hasNative = ('BarcodeDetector' in window);
+  document.getElementById('btn-scan')?.addEventListener('click', async ()=>{
+    if(hasNative){ alert('Your browser supports native scanning — use the built-in scanner in the app.'); return; }
+    const modal=document.getElementById('quagga-modal'); modal.style.display='flex';
+    const target=document.getElementById('quagga');
+    try{
+      await Quagga.init({ inputStream:{ type:'LiveStream', target, constraints:{ facingMode:'environment' } }, decoder:{ readers:['ean_reader','ean_8_reader','code_128_reader','upc_reader','upc_e_reader'] }, locate:true });
+      Quagga.start();
+      let last=''; Quagga.onDetected(data=>{ const code=data?.codeResult?.code; if(code && code!==last){ last=code; navigator.clipboard?.writeText(code).catch(()=>{}); alert('Barcode: '+code+' (copied)'); if(window.onBarcodeDetected) window.onBarcodeDetected(code); } });
+    }catch(e){ alert('Quagga failed: '+e.message); }
+    document.getElementById('quagga-close').onclick=()=>{ try{Quagga.stop();}catch(e){} modal.style.display='none'; };
+  });
+
+  async function fetchOFF(barcode){
+    try{ const res=await fetch('https://world.openfoodfacts.org/api/v2/product/'+barcode+'.json'); const j=await res.json(); if(!j||j.status!==1) return null;
+      const p=j.product||{}, n=p.nutriments||{}; return { name:p.product_name||p.generic_name||'Food item', brand:p.brands||'', serving_g:p.serving_quantity?parseFloat(p.serving_quantity):null, kcal_100g:n['energy-kcal_100g']??null, protein_100g:n['proteins_100g']??null, carbs_100g:n['carbohydrates_100g']??null, fat_100g:n['fat_100g']??null }; } catch(e){ console.warn(e); return null; } }
+  window.onBarcodeDetected = async function(code){
+    const info = await fetchOFF(code);
+    if (!info) { alert('Barcode found but nutrition not available.'); return; }
+    const nameEl = document.querySelector('[name="food-name"], #food-name, input[placeholder*="Food" i]');
+    if (nameEl) nameEl.value = (info.brand? info.brand+' ' : '') + info.name;
+    function setIf(q,v){ const el=document.querySelector(q); if(el && v!=null){ el.value = v; } }
+    setIf('#food-serving', info.serving_g||100);
+    setIf('#food-protein', info.protein_100g);
+    setIf('#food-carbs', info.carbs_100g);
+    setIf('#food-fat', info.fat_100g);
+    setIf('#food-kcal', info.kcal_100g);
+    alert('Nutrition auto‑filled from Open Food Facts per 100g. Adjust serving and save.');
+  };
+
+  // ---------- BNF portion estimates (calories) ----------
+  const BNF_PORTIONS = {
+    "wholemeal bread (2 medium slices)": {kcal:174, g:80},
+    "wrap (1)": {kcal:183, g:65},
+    "plain pasta (cooked 180g)": {kcal:270, g:180},
+    "rice (cooked 180g)": {kcal:236, g:180},
+    "baked potato (1 med 220g)": {kcal:213, g:220},
+    "oats (dry 45g)": {kcal:171, g:45},
+    "muesli (50g)": {kcal:183, g:50},
+    "new potatoes (175g)": {kcal:119, g:175},
+    "chicken grilled (120g)": {kcal:178, g:120},
+    "eggs (2)": {kcal:172, g:120},
+    "baked beans (200g)": {kcal:162, g:200},
+    "cheddar (30g)": {kcal:125, g:30},
+    "semi‑skimmed milk drink (200ml)": {kcal:92, g:200}
+  };
+  window.bnfPortionEstimate = function(label){
+    const k = Object.keys(BNF_PORTIONS).find(x => label.toLowerCase().includes(x.split('(')[0].trim()));
+    return k? BNF_PORTIONS[k] : null;
+  };
+  window.applyBNFIfMissing = function(){
+    const nameEl = document.querySelector('[name="food-name"], #food-name');
+    const kcalEl = document.querySelector('#food-kcal');
+    if (!nameEl || !kcalEl || (kcalEl.value && +kcalEl.value>0)) return;
+    const est = window.bnfPortionEstimate(nameEl.value || '');
+    if (est){ kcalEl.value = est.kcal; alert('Calories estimated from portion guide.'); }
+  };
+
+  // ---------- Charts: lifts & runs ----------
+  let exChart=null, runDistChart=null, runPaceChart=null;
+  async function buildExerciseChart(metric='1rm'){
+    const lifts = await getCollectionDocs('lifts');
+    const rows = lifts.map(l=>{
+      const ts = l.ts || l.date || l._ts || Date.parse(l.dateText||'') || Date.now();
+      const name = (l.name || l.exercise || 'Unknown').trim();
+      const w = +l.weight || +l.kg || 0;
+      const r = +l.reps || +l.rep || 0;
+      const vol = w*r; const top = w;
+      return { name, ts, date:dFmt(ts), vol, top, one: oneRM(w,r) };
+    }).filter(x=>x.name);
+    const byEx = {}; rows.forEach(r=> { byEx[r.name] = byEx[r.name] || []; byEx[r.name].push(r); });
+    const exSelect = document.getElementById('ex-select');
+    if (exSelect && !exSelect.options.length){ Object.keys(byEx).sort().forEach(n=>{ const opt=document.createElement('option'); opt.value=n; opt.textContent=n; exSelect.appendChild(opt); }); }
+    const ex = exSelect ? exSelect.value : Object.keys(byEx)[0]; if(!ex) return;
+    const arr = byEx[ex].sort((a,b)=>a.ts-b.ts);
+    const labels = arr.map(a=>a.date);
+    let data = arr.map(a=>a.one);
+    if (metric==='volume') data = arr.map(a=>a.vol);
+    if (metric==='weight') data = arr.map(a=>a.top);
+    const ctx = document.getElementById('ex-chart').getContext('2d');
+    if (exChart) exChart.destroy();
+    exChart = new Chart(ctx, { type:'line', data:{ labels, datasets:[{ label: ex + ' ' + metric, data, fill:false, tension:0.15 }]}, options:{ responsive:true, maintainAspectRatio:false }});
+    const best = arr.reduce((m,a)=> a.one>m.one?a:m, {one:0});
+    const prEl = document.getElementById('pr-strip');
+    if (prEl) prEl.innerHTML = 'Current est. 1RM PR: <b>'+best.one+' kg</b> on '+ dFmt(best.ts||Date.now());
+  }
+  document.getElementById('ex-metric-1rm')?.addEventListener('click', ()=>buildExerciseChart('1rm'));
+  document.getElementById('ex-metric-volume')?.addEventListener('click', ()=>buildExerciseChart('volume'));
+  document.getElementById('ex-metric-weight')?.addEventListener('click', ()=>buildExerciseChart('weight'));
+  document.getElementById('ex-select')?.addEventListener('change', ()=>buildExerciseChart('1rm'));
+  setTimeout(()=>buildExerciseChart('1rm'), 1200);
+
+  async function buildRunCharts(){
+    const runs = await getCollectionDocs('runs');
+    const arr = runs.map(r=>{
+      const ts = r.ts || r.date || Date.parse(r.dateText||'') || Date.now();
+      const km = +r.km || (+r.distance_km)||0;
+      let pace = r.pace || r.pace_min_per_km;
+      if (!pace && r.seconds && km) pace = (+r.seconds/60)/km;
+      return { ts, week: toWeek(ts), km, pace: pace?+pace: null };
+    });
+    const weeks = {}; arr.forEach(a=>{ const w=a.week; weeks[w]=weeks[w]||{km:0, paces:[]}; weeks[w].km += a.km; if (a.pace) weeks[w].paces.push(a.pace); });
+    const labels = Object.keys(weeks).sort();
+    const dists = labels.map(w=> +weeks[w].km.toFixed(2));
+    const avgPace = labels.map(w=> { const p=weeks[w].paces; if(!p.length) return null; const m=p.reduce((x,y)=>x+y,0)/p.length; return +m.toFixed(2); });
+    const ctx1 = document.getElementById('run-dist-chart').getContext('2d');
+    if (runDistChart) runDistChart.destroy();
+    runDistChart = new Chart(ctx1, { type:'bar', data:{ labels, datasets:[{label:'Weekly km', data:dists}]}, options:{ responsive:true, maintainAspectRatio:false }});
+    const ctx2 = document.getElementById('run-pace-chart').getContext('2d');
+    if (runPaceChart) runPaceChart.destroy();
+    runPaceChart = new Chart(ctx2, { type:'line', data:{ labels, datasets:[{label:'Avg pace (min/km)', data:avgPace}]}, options:{ responsive:true, maintainAspectRatio:false }});
+  }
+  setTimeout(buildRunCharts, 1500);
+
+  // ---------- Macros widget ----------
+  const targetsKey='lr-macro-targets';
+  function loadTargets(){ try { return JSON.parse(localStorage.getItem(targetsKey)) || {}; } catch{ return {}; } }
+  function saveTargets(t){ localStorage.setItem(targetsKey, JSON.stringify(t)); }
+  function kcalFromMacros(p,c,f){ return Math.round(p*4 + c*4 + f*9); }
+  async function renderMacros(){
+    const t = loadTargets();
+    ['kcal','pro','carbs','fat'].forEach((k,i)=>{
+      const ids = ['target-kcal','target-pro','target-carbs','target-fat'];
+      const keyMap = {0:'kcal',1:'pro',2:'carbs',3:'fat'};
+      const el = document.getElementById(ids[i]);
+      if (el && t[keyMap[i]]!=null) el.value = t[keyMap[i]];
+    });
+    const foods = await getCollectionDocs('foods');
+    const today = (new Date()).toISOString().slice(0,10);
+    const todays = foods.filter(f=> (new Date(f.ts||f.date||Date.now()).toISOString().slice(0,10))===today);
+    let p=0,c=0,f_=0,k=0;
+    todays.forEach(x=>{
+      const P=+x.protein_g||0, C=+x.carbs_g||0, F=+x.fat_g||0;
+      let K=+x.kcal || 0;
+      if (!K && (P||C||F)) K = kcalFromMacros(P,C,F);
+      p+=P; c+=C; f_+=F; k+=K;
+    });
+    const remK = (t.kcal||0)-k, remP=(t.pro||0)-p, remC=(t.carbs||0)-c, remF=(t.fat||0)-f_;
+    const el = document.getElementById('macro-summary'); if (!el) return;
+    function pill(val, target){ const cls = val<=0? 'ok' : (val<target*0.2 ? 'warn' : 'bad'); return `<span class="pill ${cls}">${val<=0?'Hit':val.toFixed(0)} left</span>`; }
+    el.innerHTML = `
+      <div>Calories: <b>${k}</b> / ${t.kcal||'—'} ${pill(remK, t.kcal||1)}</div>
+      <div>Protein: <b>${p.toFixed(0)}g</b> / ${t.pro||'—'} ${pill(remP, t.pro||1)}</div>
+      <div>Carbs: <b>${c.toFixed(0)}g</b> / ${t.carbs||'—'} ${pill(remC, t.carbs||1)}</div>
+      <div>Fat: <b>${f_.toFixed(0)}g</b> / ${t.fat||'—'} ${pill(remF, t.fat||1)}</div>
+    `;
+  }
+  document.getElementById('save-targets')?.addEventListener('click', ()=>{
+    const t = { kcal:+document.getElementById('target-kcal').value||0, pro:+document.getElementById('target-pro').value||0, carbs:+document.getElementById('target-carbs').value||0, fat:+document.getElementById('target-fat').value||0 };
+    saveTargets(t); renderMacros();
+  });
+  setInterval(renderMacros, 5000); setTimeout(renderMacros, 1600);
+
+  // ---------- Streaks & badges ----------
+  async function renderStreaks(){
+    const lifts = await getCollectionDocs('lifts');
+    const runs = await getCollectionDocs('runs');
+    const dates = new Set([...lifts, ...runs].map(x=> (new Date(x.ts||x.date||Date.now()).toISOString().slice(0,10)) ));
+    const arr = Array.from(dates).sort();
+    let streak=0; let day = new Date(); day.setHours(0,0,0,0);
+    while (dates.has(day.toISOString().slice(0,10))) { streak++; day.setDate(day.getDate()-1); }
+    const best = (()=>{ let best=0, cur=0, prev=null; arr.forEach(d=>{ const dt = new Date(d+"T00:00:00Z").getTime(); if (prev!=null && (dt - prev)===86400000) cur++; else cur=1; if (cur>best) best=cur; prev=dt; }); return best; })();
+    document.getElementById('streaks').innerHTML = `Current streak: <b>${streak}</b> days<br>Best streak: <b>${best}</b> days`;
+    const badges = []; if (streak>=3) badges.push('🔥 3‑day streak'); if (streak>=7) badges.push('💥 1‑week streak'); if (best>=30) badges.push('🏆 30‑day legend');
+    const totalLifts = lifts.length, totalRuns = runs.length; if (totalLifts>=100) badges.push('🏋️ 100 lifts logged'); if (totalRuns>=50) badges.push('🏃 50 runs logged');
+    document.getElementById('badges').innerHTML = badges.length? badges.map(b=>'<div class="pill ok">'+b+'</div>').join(' ') : 'No badges yet — keep going!';
+  }
+  setInterval(renderStreaks, 6000); setTimeout(renderStreaks, 2000);
+
+  // ---------- CSV Importers ----------
+  async function importMFP(csvText){
+    const lines = csvText.split(/\r?\n/).filter(Boolean);
+    const head = lines.shift().split(',');
+    const idx = (h)=> head.findIndex(x=> x.trim().toLowerCase().includes(h));
+    const dI=idx('date'), foodI=idx('food'), kI=idx('cal'), pI=idx('protein'), cI=idx('carbo'), fI=idx('fat');
+    const { collection, addDoc } = await import('https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js');
+    const user = window.firebaseAuth.currentUser;
+    const ref = collection(window.firebaseDb, 'users', user.uid, 'foods');
+    for (const line of lines){
+      const parts = line.split(',');
+      const row = { name: parts[foodI], kcal: +parts[kI]||0, protein_g: +parts[pI]||0, carbs_g: +parts[cI]||0, fat_g: +parts[fI]||0, dateText: parts[dI], _ts: Date.parse(parts[dI])||Date.now() };
+      await addDoc(ref, row);
+    }
+    alert('MyFitnessPal foods imported.');
+  }
+  async function importStrava(csvText){
+    const lines = csvText.split(/\r?\n/).filter(Boolean);
+    const head = lines.shift().split(',');
+    const idx = (h)=> head.findIndex(x=> x.trim().toLowerCase().includes(h));
+    const dI=idx('date'); const distI=idx('distance'); const timeI=idx('elapsed');
+    const { collection, addDoc } = await import('https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js');
+    const user = window.firebaseAuth.currentUser;
+    const ref = collection(window.firebaseDb, 'users', user.uid, 'runs');
+    for (const line of lines){
+      const parts = line.split(',');
+      const date = parts[dI]; const km = parseFloat(parts[distI]) || 0;
+      const m = (parts[timeI]||'').split(':').map(Number);
+      const secs = m.length===3? (m[0]*3600+m[1]*60+m[2]) : (m[0]*60+(m[1]||0));
+      await addDoc(ref, { km, seconds: secs, dateText: date, _ts: Date.parse(date)||Date.now() });
+    }
+    alert('Strava runs imported.');
+  }
+  (function addImporterButtons(){
+    const row=document.getElementById('importers-row'); if(!row) return;
+    row.innerHTML = '<button id="imp-mfp" class="secondary">Import MyFitnessPal CSV</button><button id="imp-strava" class="secondary">Import Strava CSV</button>';
+    row.querySelector('#imp-mfp').addEventListener('click', async()=>{
+      const inp=document.createElement('input'); inp.type='file'; inp.accept='.csv'; inp.onchange=async()=>{ const t=await inp.files[0].text(); await importMFP(t); }; inp.click();
+    });
+    row.querySelector('#imp-strava').addEventListener('click', async()=>{
+      const inp=document.createElement('input'); inp.type='file'; inp.accept='.csv'; inp.onchange=async()=>{ const t=await inp.files[0].text(); await importStrava(t); }; inp.click();
+    });
+  })();
+
+  // ---------- Build charts on timers ----------
+  setTimeout(()=>buildExerciseChart('1rm'), 1200);
+  setTimeout(buildRunCharts, 1500);
+  setTimeout(renderMacros, 1600);
+  setTimeout(renderStreaks, 2000);
+  setInterval(renderMacros, 5000);
+  setInterval(renderStreaks, 6000);
+})();</script>
+
+</body>
+</html>
